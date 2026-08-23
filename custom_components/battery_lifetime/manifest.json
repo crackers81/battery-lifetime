@@ -1,6 +1,7 @@
 {
   "domain": "battery_lifetime",
   "name": "Battery Lifetime",
+  "after_dependencies": ["recorder"],
   "codeowners": ["@crackers81"],
   "config_flow": true,
   "dependencies": [
@@ -8,10 +9,9 @@
     "http",
     "websocket_api"
   ],
-  "after_dependencies": ["recorder"],
+  "documentation": "https://github.com/crackers81/battery-lifetime",
   "integration_type": "service",
   "iot_class": "calculated",
-  "documentation": "https://github.com/crackers81/battery-lifetime",
   "issue_tracker": "https://github.com/crackers81/battery-lifetime/issues",
   "single_config_entry": true,
   "version": "1.0.1"
