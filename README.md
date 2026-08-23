@@ -6,6 +6,10 @@ Battery Lifetime is a custom Home Assistant integration that tracks battery cycl
 
 It creates **no new entities, helpers, or devices**.
 
+## Screenshot
+
+![Battery Lifetime panel](images/battery-lifetime-panel.png)
+
 ## Features
 
 - Automatically discovers existing `sensor` entities with `device_class: battery`.
@@ -73,6 +77,3 @@ All Battery Lifetime data stays in your Home Assistant instance. The integration
 
 Report problems at https://github.com/crackers81/battery-lifetime/issues.
 
-## License
-
-MIT
