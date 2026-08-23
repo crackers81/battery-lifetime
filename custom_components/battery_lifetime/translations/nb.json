@@ -1,0 +1,33 @@
+{
+  "title": "Batterilevetid",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Batterilevetid",
+        "description": "Overvåker automatisk alle eksisterende sensorer med device_class battery. Integrasjonen oppretter ingen nye entiteter.",
+        "data": {
+          "unavailable_hours": "Timer utilgjengelig før batterisyklusen avsluttes"
+        },
+        "data_description": {
+          "unavailable_hours": "Hvis batterisensoren er unavailable eller unknown så lenge, avsluttes den aktive syklusen på tidspunktet sensoren først forsvant."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Batterilevetid kan bare konfigureres én gang."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Batterilevetid-innstillinger",
+        "data": {
+          "unavailable_hours": "Timer utilgjengelig før batterisyklusen avsluttes"
+        },
+        "data_description": {
+          "unavailable_hours": "Hvis batterisensoren er unavailable eller unknown så lenge, avsluttes den aktive syklusen på tidspunktet sensoren først forsvant."
+        }
+      }
+    }
+  }
+}

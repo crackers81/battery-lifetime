@@ -1,0 +1,33 @@
+{
+  "title": "Battery Lifetime",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Battery Lifetime",
+        "description": "Automatically monitors all existing sensors with device_class battery. The integration creates no new entities.",
+        "data": {
+          "unavailable_hours": "Hours unavailable before ending the battery cycle"
+        },
+        "data_description": {
+          "unavailable_hours": "If the battery sensor remains unavailable or unknown this long, the active cycle ends at the time the sensor first disappeared."
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Battery Lifetime can only be configured once."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Battery Lifetime settings",
+        "data": {
+          "unavailable_hours": "Hours unavailable before ending the battery cycle"
+        },
+        "data_description": {
+          "unavailable_hours": "If the battery sensor remains unavailable or unknown this long, the active cycle ends at the time the sensor first disappeared."
+        }
+      }
+    }
+  }
+}
