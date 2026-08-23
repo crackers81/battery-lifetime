@@ -13,5 +13,5 @@
   "documentation": "https://github.com/crackers81/battery-lifetime",
   "issue_tracker": "https://github.com/crackers81/battery-lifetime/issues",
   "single_config_entry": true,
-  "version": "2.4.3"
+  "version": "1.0.0"
 }
