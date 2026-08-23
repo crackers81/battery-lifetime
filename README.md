@@ -61,7 +61,7 @@ During setup, choose how many consecutive hours a battery sensor may remain `una
 
 All Battery Lifetime data stays in your Home Assistant instance. The integration does not use cloud services.
 
-## Version 2.4.3
+## Version 1.0.0
 
 - Ignored batteries are removed from the main view.
 - A dedicated button in the upper-right opens the ignored-battery view.
