@@ -71,7 +71,7 @@ All Battery Lifetime data stays in your Home Assistant instance. The integration
 
 ## Support
 
-Report problems at https://github.com/crackers81/battery-lifetime/issues after replacing the placeholder with the actual repository owner.
+Report problems at https://github.com/crackers81/battery-lifetime/issues.
 
 ## License
 
