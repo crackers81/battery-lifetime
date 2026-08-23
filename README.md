@@ -8,7 +8,7 @@ It creates **no new entities, helpers, or devices**.
 
 ## Screenshot
 
-![Battery Lifetime panel](images/battery-lifetime-panel.png)
+![Battery Lifetime panel](images/Battery-lifetime.png)
 
 ## Features
 
