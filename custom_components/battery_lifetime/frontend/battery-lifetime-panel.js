@@ -65,6 +65,13 @@ class BatteryLifetimePanel extends HTMLElement {
         sort_name_asc: "Navn: A–Å",
         sort_name_desc: "Navn: Å–A",
         battery: "Batteri",
+        battery_type: "Batteritype",
+        set_battery_type: "Sett type",
+        battery_type_prompt: "Batteritype, for eksempel AA, AAA eller CR2032. La feltet stå tomt for å fjerne typen.",
+        battery_type_error: "Kunne ikke lagre batteritype",
+        not_set: "Ikke satt",
+        battery_type_auto: "Automatisk fra Zigbee2MQTT",
+        battery_type_manual: "Manuelt satt",
         level: "Nivå",
         started: "Startet",
         current: "Nåværende",
@@ -104,6 +111,13 @@ class BatteryLifetimePanel extends HTMLElement {
         sort_name_asc: "Name: A–Z",
         sort_name_desc: "Name: Z–A",
         battery: "Battery",
+        battery_type: "Battery type",
+        set_battery_type: "Set type",
+        battery_type_prompt: "Battery type, for example AA, AAA or CR2032. Leave empty to remove the type.",
+        battery_type_error: "Could not save battery type",
+        not_set: "Not set",
+        battery_type_auto: "Automatic from Zigbee2MQTT",
+        battery_type_manual: "Manually set",
         level: "Level",
         started: "Started",
         current: "Current",
@@ -165,6 +179,40 @@ class BatteryLifetimePanel extends HTMLElement {
     } catch (err) {
       window.alert(`${this._t("ignore_error")}: ${String(err)}`);
     }
+  }
+
+  async _setBatteryType(row) {
+    if (!this._hass) return;
+    const value = window.prompt(
+      this._t("battery_type_prompt"),
+      row.battery_type || ""
+    );
+    if (value === null) return;
+
+    try {
+      await this._hass.callWS({
+        type: "battery_lifetime/set_battery_type",
+        source_id: row.source_id,
+        battery_type: value.trim().slice(0, 50),
+      });
+      await this._load();
+    } catch (err) {
+      window.alert(`${this._t("battery_type_error")}: ${String(err)}`);
+    }
+  }
+
+  _batteryType(row) {
+    return row.battery_type || this._t("not_set");
+  }
+
+  _batteryTypeSource(row) {
+    if (row.battery_type_source === "zigbee2mqtt") {
+      return row.battery_type_model
+        ? `${this._t("battery_type_auto")} (${row.battery_type_model})`
+        : this._t("battery_type_auto");
+    }
+    if (row.battery_type_source === "manual") return this._t("battery_type_manual");
+    return "";
   }
 
   _duration(seconds) {
@@ -309,6 +357,7 @@ class BatteryLifetimePanel extends HTMLElement {
         (row) => `
       <tr class="${this._isUnavailable(row) ? "unavailable" : ""}">
         <td><button type="button" class="entity-name-button" data-entity="${this._escape(row.entity_id)}">${this._escape(row.name)}</button><div class="entity">${this._escape(row.entity_id)}</div></td>
+        <td><div>${this._escape(this._batteryType(row))}</div><div class="entity">${this._escape(this._batteryTypeSource(row))}</div><button class="action type-edit" data-source="${this._escape(row.source_id)}">${this._t("set_battery_type")}</button></td>
         <td class="level">${this._escape(this._level(row))}</td>
         <td>${this._date(row.cycle_started)}</td>
         <td>${this._duration(row.current_duration_seconds)}</td>
@@ -334,6 +383,7 @@ class BatteryLifetimePanel extends HTMLElement {
           <div class="battery-level">${this._escape(this._level(row))}</div>
         </div>
         <div class="details">
+          <div><span>${this._t("battery_type")}</span><strong>${this._escape(this._batteryType(row))}</strong><span>${this._escape(this._batteryTypeSource(row))}</span></div>
           <div><span>${this._t("started")}</span><strong>${this._date(row.cycle_started)}</strong></div>
           <div><span>${this._t("current")}</span><strong>${this._duration(row.current_duration_seconds)}</strong></div>
           <div><span>${this._t("previous")}</span><strong>${this._duration(row.last_duration_seconds)}</strong></div>
@@ -342,6 +392,7 @@ class BatteryLifetimePanel extends HTMLElement {
           <div><span>${this._t("expected_empty")}</span><strong>${this._date(row.expected_empty)}</strong></div>
           <div class="full"><span>${this._t("last_end_reason")}</span><strong>${this._escape(this._reason(row.last_end_reason))}</strong></div>
         </div>
+        <button class="action type-edit wide" data-source="${this._escape(row.source_id)}">${this._t("set_battery_type")}</button>
         <button class="action ignore wide" data-source="${this._escape(row.source_id)}">${this._t("ignore")}</button>
       </div>`
       )
@@ -354,8 +405,10 @@ class BatteryLifetimePanel extends HTMLElement {
         <div>
           <div class="name">${this._escape(row.name)}</div>
           <div class="entity">${this._escape(row.entity_id)}</div>
+          <div class="entity">${this._t("battery_type")}: ${this._escape(this._batteryType(row))}</div>
+          <div class="entity">${this._escape(this._batteryTypeSource(row))}</div>
         </div>
-        <button class="action restore" data-source="${this._escape(row.source_id)}">${this._t("restore")}</button>
+        <div class="ignored-actions"><button class="action type-edit" data-source="${this._escape(row.source_id)}">${this._t("set_battery_type")}</button><button class="action restore" data-source="${this._escape(row.source_id)}">${this._t("restore")}</button></div>
       </div>`
       )
       .join("");
@@ -401,6 +454,8 @@ class BatteryLifetimePanel extends HTMLElement {
         .details .full { grid-column: 1 / -1; }
         .action { min-height: 36px; border: 1px solid var(--divider-color); border-radius: 9px; padding: 7px 12px; background: var(--card-background-color); color: var(--primary-color); font: inherit; cursor: pointer; }
         .action.wide { width: 100%; margin-top: 14px; }
+        .action.wide + .action.wide { margin-top: 8px; }
+        .ignored-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
         .ignored-list { display: grid; width: 100%; min-width: 0; gap: 1px; overflow: hidden; }
         .ignored-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--card-background-color); border-bottom: 1px solid var(--divider-color); }
         .ignored-row:last-child { border-bottom: none; }
@@ -421,6 +476,7 @@ class BatteryLifetimePanel extends HTMLElement {
           h1, h2, .count { max-width: 100%; overflow-wrap: anywhere; }
           .ignored-row { align-items: flex-start; flex-direction: column; }
           .ignored-row .action { width: 100%; }
+          .ignored-actions { width: 100%; flex-direction: column; }
         }
       </style>
       <div class="wrap">
@@ -452,7 +508,7 @@ class BatteryLifetimePanel extends HTMLElement {
           <div class="card desktop-table">
             <table>
               <thead><tr>
-                <th>${this._t("battery")}</th><th>${this._t("level")}</th><th>${this._t("started")}</th><th>${this._t("current")}</th><th>${this._t("previous")}</th><th>${this._t("average")}</th><th>${this._t("cycles")}</th><th>${this._t("expected_empty")}</th><th>${this._t("last_end_reason")}</th><th></th>
+                <th>${this._t("battery")}</th><th>${this._t("battery_type")}</th><th>${this._t("level")}</th><th>${this._t("started")}</th><th>${this._t("current")}</th><th>${this._t("previous")}</th><th>${this._t("average")}</th><th>${this._t("cycles")}</th><th>${this._t("expected_empty")}</th><th>${this._t("last_end_reason")}</th><th></th>
               </tr></thead>
               <tbody>${tableBody}</tbody>
             </table>
@@ -501,6 +557,14 @@ class BatteryLifetimePanel extends HTMLElement {
       button.addEventListener("click", () => {
         const row = activeAll.find((item) => item.source_id === button.dataset.source);
         if (row) this._setIgnored(row, true);
+      });
+    });
+
+    this.querySelectorAll("button.type-edit").forEach((button) => {
+      button.addEventListener("click", () => {
+        const allRows = [...activeAll, ...ignoredAll];
+        const row = allRows.find((item) => item.source_id === button.dataset.source);
+        if (row) this._setBatteryType(row);
       });
     });
 

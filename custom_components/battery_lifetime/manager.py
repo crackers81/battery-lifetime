@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timedelta
+import html
 import logging
+import re
 from typing import Any
+from urllib.parse import quote
 
+from aiohttp import ClientError, ClientTimeout
 from homeassistant.const import ATTR_DEVICE_CLASS, STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import CALLBACK_TYPE, Event, EventStateChangedData, HomeAssistant, State, callback
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import (
     async_track_state_added_domain,
@@ -18,6 +25,13 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 _LOGGER = logging.getLogger(__name__)
+
+ZIGBEE2MQTT_DEVICE_URL = "https://www.zigbee2mqtt.io/devices/{model}.html"
+BATTERY_TYPE_PATTERN = re.compile(
+    r"\bUses\s+(?:(?:an?|the)\s+)?(?:(\d+)\s*[x×]\s*)?"
+    r"([A-Za-z0-9][A-Za-z0-9+./-]{0,24})\s+batter(?:y|ies)\b",
+    re.IGNORECASE,
+)
 
 
 from .const import (
@@ -141,6 +155,102 @@ class BatteryLifetimeManager:
         if changed:
             await self._store.async_save(self._data)
 
+    async def async_autofill_battery_types(self) -> None:
+        """Fill missing battery types from Zigbee2MQTT device documentation."""
+        sources_by_model: dict[str, list[str]] = {}
+        for source_id in self.source_ids:
+            record = self.get_record(source_id)
+            if record.get("battery_type_source") == "manual":
+                continue
+            if record.get("battery_type"):
+                continue
+            if model := self._zigbee2mqtt_model(record.get("entity_id")):
+                sources_by_model.setdefault(model, []).append(source_id)
+
+        if not sources_by_model:
+            return
+
+        semaphore = asyncio.Semaphore(4)
+
+        async def _limited_lookup(model: str) -> tuple[str, str | None]:
+            async with semaphore:
+                return model, await self._async_lookup_zigbee2mqtt_battery_type(model)
+
+        results = await asyncio.gather(
+            *(_limited_lookup(model) for model in sources_by_model)
+        )
+        changed = False
+        for model, battery_type in results:
+            if battery_type is None:
+                continue
+            for source_id in sources_by_model[model]:
+                record = self.get_record(source_id)
+                if record.get("battery_type_source") == "manual":
+                    continue
+                record["battery_type"] = battery_type
+                record["battery_type_source"] = "zigbee2mqtt"
+                record["battery_type_model"] = model
+                changed = True
+
+        if changed:
+            await self._store.async_save(self._data)
+
+    async def async_autofill_battery_type(self, source_id: str) -> None:
+        """Fill one new source's battery type when a reliable match exists."""
+        if source_id not in self._data["sources"]:
+            return
+        record = self.get_record(source_id)
+        if record.get("battery_type_source") == "manual" or record.get("battery_type"):
+            return
+        model = self._zigbee2mqtt_model(record.get("entity_id"))
+        if model is None:
+            return
+        battery_type = await self._async_lookup_zigbee2mqtt_battery_type(model)
+        if battery_type is None or record.get("battery_type_source") == "manual":
+            return
+        record["battery_type"] = battery_type
+        record["battery_type_source"] = "zigbee2mqtt"
+        record["battery_type_model"] = model
+        await self._store.async_save(self._data)
+
+    async def _async_lookup_zigbee2mqtt_battery_type(
+        self, model: str
+    ) -> str | None:
+        """Return a battery type from a Zigbee2MQTT device page."""
+        url = ZIGBEE2MQTT_DEVICE_URL.format(model=quote(model, safe=""))
+        try:
+            session = async_get_clientsession(self.hass)
+            async with session.get(
+                url,
+                timeout=ClientTimeout(total=10),
+                headers={"User-Agent": "Home Assistant Battery Lifetime"},
+            ) as response:
+                if response.status != 200:
+                    _LOGGER.debug(
+                        "Zigbee2MQTT battery lookup for %s returned HTTP %s",
+                        model,
+                        response.status,
+                    )
+                    return None
+                body = (await response.content.read(1_000_000)).decode(
+                    response.charset or "utf-8", errors="replace"
+                )
+        except (ClientError, TimeoutError):
+            _LOGGER.debug(
+                "Unable to look up Zigbee2MQTT battery type for %s",
+                model,
+                exc_info=True,
+            )
+            return None
+
+        plain_text = html.unescape(re.sub(r"<[^>]+>", " ", body))
+        match = BATTERY_TYPE_PATTERN.search(plain_text)
+        if match is None:
+            return None
+        count, battery_type = match.groups()
+        normalized_type = battery_type.upper()
+        return f"{count} × {normalized_type}" if count else normalized_type
+
     def _find_active_start_from_history(
         self, states: list[State | dict[str, Any]], now: datetime
     ) -> datetime | None:
@@ -244,6 +354,23 @@ class BatteryLifetimeManager:
         record["ignored"] = ignored
         await self._store.async_save(self._data)
 
+    async def async_set_battery_type(
+        self, source_id: str, battery_type: str
+    ) -> None:
+        """Store a user-defined battery type for one source."""
+        if source_id not in self._data["sources"]:
+            raise KeyError(source_id)
+
+        normalized = battery_type.strip()[:50]
+        record = self.get_record(source_id)
+        if str(record.get("battery_type") or "") == normalized:
+            return
+
+        record["battery_type"] = normalized or None
+        record["battery_type_source"] = "manual"
+        record.pop("battery_type_model", None)
+        await self._store.async_save(self._data)
+
     def source_name(self, source_id: str) -> str:
         """Return a friendly name for a source."""
         record = self.get_record(source_id)
@@ -312,6 +439,9 @@ class BatteryLifetimeManager:
                     "battery_level": battery_level,
                     "state": state_text,
                     "ignored": self.is_ignored(source_id),
+                    "battery_type": record.get("battery_type"),
+                    "battery_type_source": record.get("battery_type_source"),
+                    "battery_type_model": record.get("battery_type_model"),
                     "active": start is not None,
                     "cycle_started": start.isoformat() if start else None,
                     "current_duration_seconds": (
@@ -345,6 +475,7 @@ class BatteryLifetimeManager:
             return
         source_id = self._async_register_source(new_state)
         self.hass.async_create_task(self._async_process_state(source_id, new_state))
+        self.hass.async_create_task(self.async_autofill_battery_type(source_id))
 
     @callback
     def _async_register_source(self, state: State) -> str:
@@ -360,6 +491,9 @@ class BatteryLifetimeManager:
                 "unavailable_since": None,
                 "cycles": [],
                 "ignored": False,
+                "battery_type": None,
+                "battery_type_source": None,
+                "battery_type_model": None,
             }
         else:
             record = self.get_record(source_id)
@@ -488,6 +622,37 @@ class BatteryLifetimeManager:
         if entry := registry.async_get(entity_id):
             return f"registry:{entry.id}"
         return f"entity:{entity_id}"
+
+    @callback
+    def _zigbee2mqtt_model(self, entity_id: str | None) -> str | None:
+        """Return the model for an entity that belongs to Zigbee2MQTT."""
+        if not entity_id:
+            return None
+        entity_entry = er.async_get(self.hass).async_get(entity_id)
+        if entity_entry is None or entity_entry.device_id is None:
+            return None
+        device_registry = dr.async_get(self.hass)
+        device = device_registry.async_get(entity_entry.device_id)
+        if device is None:
+            return None
+
+        markers = [str(value) for _, value in device.identifiers]
+        if device.via_device_id and (
+            via_device := device_registry.async_get(device.via_device_id)
+        ) is not None:
+            markers.extend(
+                [
+                    str(via_device.name or ""),
+                    str(via_device.name_by_user or ""),
+                    str(via_device.model or ""),
+                    *(str(value) for _, value in via_device.identifiers),
+                ]
+            )
+        if not any("zigbee2mqtt" in marker.casefold() for marker in markers):
+            return None
+
+        model = device.model_id or device.model
+        return str(model).strip() if model else None
 
     @staticmethod
     def _battery_value(state: State) -> float | None:

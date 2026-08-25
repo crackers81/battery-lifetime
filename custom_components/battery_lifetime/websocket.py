@@ -7,7 +7,7 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
-from .const import DOMAIN, WS_GET_DATA, WS_SET_IGNORED
+from .const import DOMAIN, WS_GET_DATA, WS_SET_BATTERY_TYPE, WS_SET_IGNORED
 from .manager import BatteryLifetimeManager
 
 
@@ -72,3 +72,35 @@ def async_register_websocket(hass: HomeAssistant) -> None:
 
     websocket_api.async_register_command(hass, websocket_get_data)
     websocket_api.async_register_command(hass, websocket_set_ignored)
+
+    @websocket_api.websocket_command(
+        {
+            vol.Required("type"): WS_SET_BATTERY_TYPE,
+            vol.Required("source_id"): str,
+            vol.Required("battery_type"): vol.All(str, vol.Length(max=50)),
+        }
+    )
+    @websocket_api.async_response
+    async def websocket_set_battery_type(
+        hass: HomeAssistant,
+        connection: websocket_api.ActiveConnection,
+        msg: dict,
+    ) -> None:
+        """Store a user-defined battery type for one source."""
+        domain_data = hass.data.get(DOMAIN, {})
+        manager: BatteryLifetimeManager | None = domain_data.get("manager")
+        if manager is None:
+            connection.send_error(msg["id"], "not_loaded", "Battery Lifetime is not loaded")
+            return
+
+        try:
+            await manager.async_set_battery_type(
+                msg["source_id"], msg["battery_type"]
+            )
+        except KeyError:
+            connection.send_error(msg["id"], "not_found", "Battery source not found")
+            return
+
+        connection.send_result(msg["id"], {"success": True})
+
+    websocket_api.async_register_command(hass, websocket_set_battery_type)

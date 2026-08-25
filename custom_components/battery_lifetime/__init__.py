@@ -52,6 +52,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await manager.async_load()
     manager.async_discover_existing()
     await manager.async_backfill_active_starts()
+    await manager.async_autofill_battery_types()
     await manager.async_start()
 
     hass.data.setdefault(DOMAIN, {})["manager"] = manager
