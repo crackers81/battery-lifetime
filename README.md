@@ -6,10 +6,6 @@ Battery Lifetime is a custom Home Assistant integration that tracks battery cycl
 
 It creates **no new entities, helpers, or devices**.
 
-## Screenshot
-
-![Battery Lifetime panel](images/Battery-lifetime.png)
-
 ## Features
 
 - Automatically discovers existing `sensor` entities with `device_class: battery`.
@@ -24,6 +20,8 @@ It creates **no new entities, helpers, or devices**.
 - Opens the existing entity's Home Assistant More Info dialog when its name is clicked.
 - Hides ignored batteries from the main view and provides a separate **Ignored** button/view.
 - Continues measurement, history handling, and backfill while a battery is ignored.
+- Stores an optional user-defined battery type for each battery, such as AA, AAA, or CR2032.
+- Automatically fills missing battery types for reliably identified Zigbee2MQTT devices when the device page contains a clear battery note.
 
 ## Requirements
 
@@ -65,15 +63,20 @@ During setup, choose how many consecutive hours a battery sensor may remain `una
 
 All Battery Lifetime data stays in your Home Assistant instance. The integration does not use cloud services.
 
-## Version 1.0.1
+## Version 1.2.0
 
 - Ignored batteries are removed from the main view.
 - A dedicated button in the upper-right opens the ignored-battery view.
 - Ignoring only changes visibility; all measurement continues in the background.
 - Battery names remain clickable and open the existing Home Assistant entity dialog.
 - Includes English and Norwegian UI support, historical Recorder backfill, and responsive layouts.
+- Adds optional battery-type registration without creating entities, helpers, or devices.
+- Adds cached best-effort battery-type lookup from Zigbee2MQTT; manual values are never overwritten.
 
 ## Support
 
 Report problems at https://github.com/crackers81/battery-lifetime/issues.
 
+## License
+
+MIT
