@@ -63,15 +63,10 @@ During setup, choose how many consecutive hours a battery sensor may remain `una
 
 All Battery Lifetime data stays in your Home Assistant instance. The integration does not use cloud services.
 
-## Version 1.2.0
+## Version 1.2.1
 
-- Ignored batteries are removed from the main view.
-- A dedicated button in the upper-right opens the ignored-battery view.
-- Ignoring only changes visibility; all measurement continues in the background.
-- Battery names remain clickable and open the existing Home Assistant entity dialog.
-- Includes English and Norwegian UI support, historical Recorder backfill, and responsive layouts.
-- Adds optional battery-type registration without creating entities, helpers, or devices.
-- Adds cached best-effort battery-type lookup from Zigbee2MQTT; manual values are never overwritten.
+- Fixed a crash when Zigbee2MQTT device identifiers contain more than two values.
+- Improved compatibility with Zigbee2MQTT device and coordinator identifiers.
 
 ## Support
 
