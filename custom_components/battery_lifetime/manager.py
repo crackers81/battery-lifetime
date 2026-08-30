@@ -636,7 +636,11 @@ class BatteryLifetimeManager:
         if device is None:
             return None
 
-        markers = [str(value) for _, value in device.identifiers]
+        markers = [
+            str(value)
+            for identifier in device.identifiers
+            for value in identifier
+        ]
         if device.via_device_id and (
             via_device := device_registry.async_get(device.via_device_id)
         ) is not None:
@@ -645,7 +649,11 @@ class BatteryLifetimeManager:
                     str(via_device.name or ""),
                     str(via_device.name_by_user or ""),
                     str(via_device.model or ""),
-                    *(str(value) for _, value in via_device.identifiers),
+                    *(
+                        str(value)
+                        for identifier in via_device.identifiers
+                        for value in identifier
+                    ),
                 ]
             )
         if not any("zigbee2mqtt" in marker.casefold() for marker in markers):
