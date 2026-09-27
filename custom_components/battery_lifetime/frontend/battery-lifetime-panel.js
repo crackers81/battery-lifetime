@@ -59,7 +59,7 @@ class BatteryInfoPanel extends HTMLElement {
         title: "Battery Info", loading: "Loading …", error: "Could not load battery data",
         summary: "battery devices", low: "low batteries", ignored: "ignored",
         show_ignored: "Ignored", back: "Back", search: "Search device or battery type …",
-        battery_toggle: "Batteri",
+        battery_toggle: "Battery",
         sort: "Sort batteries", lowest: "Lowest level first", highest: "Highest level first",
         name_asc: "Name: A–Z", name_desc: "Name: Z–A", unavailable_first: "Unavailable first",
         device: "Device", type: "Battery type", remaining: "Remaining", status: "Status",

@@ -9,16 +9,18 @@ It creates **no new entities, helpers, or devices**.
 ## Features
 
 - Automatically discovers existing battery sensor entities.
-- Shows each device's current battery percentage with a colour-coded status and progress bar.
-- Highlights low and critical batteries.
+- Shows each device's current battery percentage with a colour-coded progress bar.
+- Highlights the number of low batteries in the page summary.
 - Stores a manually entered battery type, such as AA, AAA, or CR2032.
 - Automatically fills missing battery types for reliably identified Zigbee2MQTT devices when their supported-device page contains a clear battery note.
-- Shows whether the battery type was detected automatically or entered manually.
 - Manual battery types are never overwritten by automatic detection.
+- Hides battery-type information by default and provides a **Battery** button to show or hide it.
 - Supports search and sorting by battery level, availability, or name.
 - Opens the existing Home Assistant entity dialog when a device name is clicked.
 - Provides a separate view for ignored devices.
-- Uses a responsive layout for desktop and mobile.
+- On desktop, devices can be ignored with the **Ignore** button.
+- On mobile, tap the percentage or progress bar to ignore a device without using an extra button row.
+- Uses a compact responsive layout for desktop and mobile.
 - Supports English and Norwegian.
 
 ## Installation with HACS
@@ -55,7 +57,10 @@ Battery types and ignored-device choices are stored locally in Home Assistant. F
 - Renamed the integration and sidebar panel to Battery Info.
 - Replaced battery-lifetime tracking with a focused battery-information overview.
 - Removed cycles, duration statistics, Recorder backfill, and expected replacement dates.
-- Added clear battery-level progress bars and colour-coded status labels.
+- Added clear colour-coded battery-level progress bars.
+- Added a Battery button that shows or hides battery types and editing controls.
+- Added compact desktop and mobile layouts.
+- On mobile, the percentage and progress bar open the ignore confirmation.
 - Retained automatic and manual battery-type registration.
 - Preserves existing manual battery types and ignored-device choices during upgrade.
 - Creates no new entities, helpers, or devices.
