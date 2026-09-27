@@ -1,4 +1,4 @@
-"""Battery Lifetime integration."""
+"""Battery Info integration."""
 
 from __future__ import annotations
 
@@ -15,8 +15,6 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
-    CONF_UNAVAILABLE_HOURS,
-    DEFAULT_UNAVAILABLE_HOURS,
     DOMAIN,
     PANEL_ICON,
     PANEL_TITLE_EN,
@@ -24,7 +22,7 @@ from .const import (
     PANEL_URL_PATH,
     STATIC_URL,
 )
-from .manager import BatteryLifetimeManager
+from .manager import BatteryInfoManager
 from .websocket import async_register_websocket
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -43,17 +41,15 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Battery Lifetime from a config entry."""
-    unavailable_hours = int(
-        entry.options.get(CONF_UNAVAILABLE_HOURS, DEFAULT_UNAVAILABLE_HOURS)
-    )
-
-    manager = BatteryLifetimeManager(hass, unavailable_hours)
+    """Set up Battery Info from a config entry."""
+    manager = BatteryInfoManager(hass)
     await manager.async_load()
     manager.async_discover_existing()
-    await manager.async_backfill_active_starts()
     await manager.async_autofill_battery_types()
     await manager.async_start()
+
+    if entry.title != "Battery Info" or entry.options:
+        hass.config_entries.async_update_entry(entry, title="Battery Info", options={})
 
     hass.data.setdefault(DOMAIN, {})["manager"] = manager
     entry.runtime_data = manager
@@ -92,8 +88,8 @@ async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload Battery Lifetime."""
-    manager: BatteryLifetimeManager = entry.runtime_data
+    """Unload Battery Info."""
+    manager: BatteryInfoManager = entry.runtime_data
     await manager.async_stop()
     hass.data.setdefault(DOMAIN, {}).pop("manager", None)
 

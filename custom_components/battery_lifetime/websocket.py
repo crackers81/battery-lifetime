@@ -1,4 +1,4 @@
-"""WebSocket API for Battery Lifetime."""
+"""WebSocket API for Battery Info."""
 
 from __future__ import annotations
 
@@ -8,12 +8,12 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 
 from .const import DOMAIN, WS_GET_DATA, WS_SET_BATTERY_TYPE, WS_SET_IGNORED
-from .manager import BatteryLifetimeManager
+from .manager import BatteryInfoManager
 
 
 @callback
 def async_register_websocket(hass: HomeAssistant) -> None:
-    """Register Battery Lifetime WebSocket commands."""
+    """Register Battery Info WebSocket commands."""
 
     @websocket_api.websocket_command({vol.Required("type"): WS_GET_DATA})
     @websocket_api.async_response
@@ -24,9 +24,9 @@ def async_register_websocket(hass: HomeAssistant) -> None:
     ) -> None:
         """Return all tracked battery information."""
         domain_data = hass.data.get(DOMAIN, {})
-        manager: BatteryLifetimeManager | None = domain_data.get("manager")
+        manager: BatteryInfoManager | None = domain_data.get("manager")
         if manager is None:
-            connection.send_error(msg["id"], "not_loaded", "Battery Lifetime is not loaded")
+            connection.send_error(msg["id"], "not_loaded", "Battery Info is not loaded")
             return
 
         rows = manager.export_rows()
@@ -57,9 +57,9 @@ def async_register_websocket(hass: HomeAssistant) -> None:
     ) -> None:
         """Ignore or restore one battery source."""
         domain_data = hass.data.get(DOMAIN, {})
-        manager: BatteryLifetimeManager | None = domain_data.get("manager")
+        manager: BatteryInfoManager | None = domain_data.get("manager")
         if manager is None:
-            connection.send_error(msg["id"], "not_loaded", "Battery Lifetime is not loaded")
+            connection.send_error(msg["id"], "not_loaded", "Battery Info is not loaded")
             return
 
         try:
@@ -88,9 +88,9 @@ def async_register_websocket(hass: HomeAssistant) -> None:
     ) -> None:
         """Store a user-defined battery type for one source."""
         domain_data = hass.data.get(DOMAIN, {})
-        manager: BatteryLifetimeManager | None = domain_data.get("manager")
+        manager: BatteryInfoManager | None = domain_data.get("manager")
         if manager is None:
-            connection.send_error(msg["id"], "not_loaded", "Battery Lifetime is not loaded")
+            connection.send_error(msg["id"], "not_loaded", "Battery Info is not loaded")
             return
 
         try:

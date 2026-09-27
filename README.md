@@ -1,34 +1,25 @@
-# Battery Lifetime
+# Battery Info
 
 [![Validation](https://github.com/crackers81/battery-lifetime/actions/workflows/validate.yml/badge.svg)](https://github.com/crackers81/battery-lifetime/actions/workflows/validate.yml)
 
-Battery Lifetime is a custom Home Assistant integration that tracks battery cycles for existing battery sensor entities and displays the results in a dedicated sidebar panel.
+Battery Info is a custom Home Assistant integration that presents battery type and remaining battery level in a simple, readable sidebar overview.
 
 It creates **no new entities, helpers, or devices**.
 
 ## Features
 
-- Automatically discovers existing `sensor` entities with `device_class: battery`.
-- Starts a battery cycle when the sensor reaches 100%.
-- Ends a cycle at 0%, or after the sensor remains `unavailable`/`unknown` for the configured timeout.
-- Stores cycle history persistently in Home Assistant `.storage`.
-- Backfills a missing active-cycle start from Recorder history when a valid earlier 100% transition exists.
-- Shows current duration, previous duration, average duration, completed cycles, and estimated empty date.
-- Sorts by battery level, name, or unavailable state.
-- Uses mobile cards and a desktop table.
-- Supports English and Norwegian Home Assistant installations.
-- Opens the existing entity's Home Assistant More Info dialog when its name is clicked.
-- Hides ignored batteries from the main view and provides a separate **Ignored** button/view.
-- Continues measurement, history handling, and backfill while a battery is ignored.
-- Stores an optional user-defined battery type for each battery, such as AA, AAA, or CR2032.
-- Automatically fills missing battery types for reliably identified Zigbee2MQTT devices when the device page contains a clear battery note.
-
-## Requirements
-
-- Home Assistant with Recorder enabled for historical backfill.
-- Existing battery sensors using `device_class: battery`.
-
-Historical backfill can only use Recorder data that Home Assistant still retains. If no suitable 100% state exists, the start date remains unknown until the battery next reaches 100%.
+- Automatically discovers existing battery sensor entities.
+- Shows each device's current battery percentage with a colour-coded status and progress bar.
+- Highlights low and critical batteries.
+- Stores a manually entered battery type, such as AA, AAA, or CR2032.
+- Automatically fills missing battery types for reliably identified Zigbee2MQTT devices when their supported-device page contains a clear battery note.
+- Shows whether the battery type was detected automatically or entered manually.
+- Manual battery types are never overwritten by automatic detection.
+- Supports search and sorting by battery level, availability, or name.
+- Opens the existing Home Assistant entity dialog when a device name is clicked.
+- Provides a separate view for ignored devices.
+- Uses a responsive layout for desktop and mobile.
+- Supports English and Norwegian.
 
 ## Installation with HACS
 
@@ -36,37 +27,38 @@ Until this repository is included in the default HACS catalog:
 
 1. Open HACS.
 2. Open **Custom repositories**.
-3. Add `https://github.com/crackers81/battery-lifetime` as category **Integration**.
-4. Install **Battery Lifetime**.
+3. Add https://github.com/crackers81/battery-lifetime as category **Integration**.
+4. Install **Battery Info**.
 5. Restart Home Assistant.
-6. Open **Settings > Devices & services > Add integration** and search for **Battery Lifetime**.
+6. Open **Settings > Devices & services > Add integration** and search for **Battery Info**.
+
+## Updating from Battery Lifetime
+
+Version 2.0.0 replaces Battery Lifetime with Battery Info. Update through HACS and restart Home Assistant. The existing config entry, manually registered battery types, and ignored-device choices are retained. Lifetime calculations, cycle history, Recorder backfill, and replacement-date estimates are removed.
+
+The technical integration domain remains battery_lifetime so existing HACS installations can update normally.
+
+If the sidebar still shows the previous interface after restarting, fully reload the Home Assistant app or clear the browser cache.
 
 ## Manual installation
 
-Copy `custom_components/battery_lifetime` into your Home Assistant configuration directory so the final path is:
+Copy custom_components/battery_lifetime into your Home Assistant configuration directory at /config/custom_components/battery_lifetime.
 
-```text
-/config/custom_components/battery_lifetime
-```
-
-Restart Home Assistant, then add **Battery Lifetime** under **Settings > Devices & services**.
-
-## Updating
-
-Update through HACS and restart Home Assistant. You do not need to remove the existing config entry. If the sidebar still shows an older frontend after restart, fully reload the Home Assistant app or browser cache.
-
-## Configuration
-
-During setup, choose how many consecutive hours a battery sensor may remain `unavailable` or `unknown` before its active cycle is ended. The default is 24 hours. This can later be changed under the integration's options.
+Restart Home Assistant and add **Battery Info** under **Settings > Devices & services**.
 
 ## Data and privacy
 
-All Battery Lifetime data stays in your Home Assistant instance. The integration does not use cloud services.
+Battery types and ignored-device choices are stored locally in Home Assistant. For confirmed Zigbee2MQTT devices with no saved battery type, the integration can request the matching public device page from zigbee2mqtt.io. Successful results are cached locally.
 
-## Version 1.2.1
+## Version 2.0.0
 
-- Fixed a crash when Zigbee2MQTT device identifiers contain more than two values.
-- Improved compatibility with Zigbee2MQTT device and coordinator identifiers.
+- Renamed the integration and sidebar panel to Battery Info.
+- Replaced battery-lifetime tracking with a focused battery-information overview.
+- Removed cycles, duration statistics, Recorder backfill, and expected replacement dates.
+- Added clear battery-level progress bars and colour-coded status labels.
+- Retained automatic and manual battery-type registration.
+- Preserves existing manual battery types and ignored-device choices during upgrade.
+- Creates no new entities, helpers, or devices.
 
 ## Support
 
