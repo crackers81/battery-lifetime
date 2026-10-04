@@ -184,7 +184,8 @@ class BatteryInfoManager:
                 {
                     "source_id": source_id,
                     "entity_id": entity_id,
-                    "name": state.name if state else record.get("name") or entity_id,
+                    "name": self._device_name(entity_id)
+                    or (state.name if state else record.get("name") or entity_id),
                     "battery_level": self._battery_value(state) if state else None,
                     "state": state_text,
                     "ignored": bool(record.get("ignored", False)),
@@ -228,6 +229,18 @@ class BatteryInfoManager:
         if entry := er.async_get(self.hass).async_get(entity_id):
             return f"registry:{entry.id}"
         return f"entity:{entity_id}"
+
+    @callback
+    def _device_name(self, entity_id: str | None) -> str | None:
+        if not entity_id:
+            return None
+        entity = er.async_get(self.hass).async_get(entity_id)
+        if entity is None or entity.device_id is None:
+            return None
+        device = dr.async_get(self.hass).async_get(entity.device_id)
+        if device is None:
+            return None
+        return device.name_by_user or device.name
 
     @callback
     def _zigbee2mqtt_model(self, entity_id: str | None) -> str | None:
