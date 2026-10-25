@@ -39,6 +39,7 @@ class BatteryInfoManager:
         )
         self._data: dict[str, Any] = {"sources": {}}
         self._unsub_new_sensor: CALLBACK_TYPE | None = None
+        self._unsub_registry: CALLBACK_TYPE | None = None
 
     @property
     def source_ids(self) -> list[str]:
@@ -71,11 +72,60 @@ class BatteryInfoManager:
         self._unsub_new_sensor = async_track_state_added_domain(
             self.hass, "sensor", self._async_new_sensor_state
         )
+        self._unsub_registry = self.hass.bus.async_listen(
+            er.EVENT_ENTITY_REGISTRY_UPDATED, self._async_registry_updated
+        )
+        await self.async_prune_removed()
+
+    async def async_prune_removed(self) -> None:
+        """Forget sources whose entity has been deleted from Home Assistant."""
+        registry = er.async_get(self.hass)
+        removed = [
+            source_id
+            for source_id, record in self._data["sources"].items()
+            if self.hass.states.get(record.get("entity_id") or "") is None
+            and self._entity_is_gone(registry, source_id, record)
+        ]
+        if not removed:
+            return
+        for source_id in removed:
+            _LOGGER.debug("Removing deleted battery source %s", source_id)
+            self._data["sources"].pop(source_id, None)
+        await self._store.async_save(self._data)
+
+    @staticmethod
+    def _entity_is_gone(
+        registry: er.EntityRegistry, source_id: str, record: dict[str, Any]
+    ) -> bool:
+        """Return True when the entity no longer exists in the entity registry."""
+        if source_id.startswith("registry:"):
+            return registry.async_get(source_id.removeprefix("registry:")) is None
+        entity_id = record.get("entity_id")
+        return not entity_id or registry.async_get(entity_id) is None
+
+    @callback
+    def _async_registry_updated(self, event: Event) -> None:
+        """Drop a source immediately when its entity is removed."""
+        if event.data.get("action") != "remove":
+            return
+        entity_id = event.data.get("entity_id")
+        removed = [
+            source_id
+            for source_id, record in self._data["sources"].items()
+            if record.get("entity_id") == entity_id
+        ]
+        for source_id in removed:
+            self._data["sources"].pop(source_id, None)
+        if removed:
+            self._store.async_delay_save(lambda: self._data, 2)
 
     async def async_stop(self) -> None:
         if self._unsub_new_sensor:
             self._unsub_new_sensor()
             self._unsub_new_sensor = None
+        if self._unsub_registry:
+            self._unsub_registry()
+            self._unsub_registry = None
         await self._store.async_save(self._data)
 
     def get_record(self, source_id: str) -> dict[str, Any]:
